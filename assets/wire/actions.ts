@@ -465,8 +465,18 @@ export function submitDownloadItems(items: any, params: any) {
         else{
             try {
                 const response = await server.post(url, payload, undefined, {parseJson: false});
+
+                let filename = '';
+                const contentDisposition = response.headers.get('content-disposition');
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^";]+)"?/);
+                    if (match && match.length > 1) {
+                        filename = match[1];
+                    }
+                }
+
                 const blob = await response.blob();
-                initiateDownload(blob);
+                initiateDownload(blob, filename);
             } catch (error: any) {
                 errorHandler(error);
             }
@@ -477,11 +487,25 @@ export function submitDownloadItems(items: any, params: any) {
     };
 }
 
-function initiateDownload(source: string | Blob) {
+function initiateDownload(source: string | Blob, filename = '') {
     const link = document.createElement('a');
-    link.download = '';
-    link.href = typeof source === 'string' ? source : URL.createObjectURL(source);
+
+    if (filename) {
+        link.setAttribute('download', filename);
+    } else {
+        link.setAttribute('download', '');
+    }
+
+    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
+    link.href = url;
+
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+
+    if (typeof source !== 'string') {
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
 }
 
 

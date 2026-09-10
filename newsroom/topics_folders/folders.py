@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 from bson import ObjectId
 from quart_babel import gettext
 
-from superdesk.core.types import Request, Response, SearchRequest
+from superdesk.core.types import Request, Response
 from superdesk.core.module import SuperdeskAsyncApp
 from superdesk.core.resources import (
     ResourceConfig,
@@ -30,20 +30,8 @@ from newsroom.signals import user_deleted
 
 from superdesk.core.resources import ResourceRestEndpoints
 
-DEFAULT_MAX_RESULTS = 500
-
 
 class FolderRestEndpoints(ResourceRestEndpoints):
-    async def search_items(self, args: None, params: SearchRequest, request: Request) -> Response:
-        """Processes a search request
-
-        The client loads all folders in one request and filters by section itself,
-        so use a large page size unless the request explicitly asks for one.
-        """
-        if request.get_url_arg("max_results") is None:
-            params.max_results = DEFAULT_MAX_RESULTS
-        return await super().search_items(args, params, request)
-
     def _format_error_to_newshub_style(self, response_body: dict) -> dict:
         # Hack to provide Newshub style errors from REST Endpoints API
         # Only needed for TopicFolders - most APIs in Newshub use Endpoints and ResourceServices directly
@@ -140,6 +128,7 @@ user_topic_folders_resource_config = ResourceConfig(
     service=UserFoldersResourceService,
     mongo=MongoResourceConfig(prefix=MONGO_PREFIX),
     datasource_name="topic_folders",
+    default_max_results=500,
     rest_endpoints=RestEndpointConfig(
         endpoints_class=FolderRestEndpoints,
         parent_links=[RestParentLink(resource_name="users", model_id_field="user")],
@@ -159,6 +148,7 @@ company_topic_folder_resource_config = ResourceConfig(
     service=CompanyFoldersResourceService,
     mongo=MongoResourceConfig(prefix=MONGO_PREFIX),
     datasource_name="topic_folders",
+    default_max_results=500,
     rest_endpoints=RestEndpointConfig(
         endpoints_class=FolderRestEndpoints,
         parent_links=[RestParentLink(resource_name="companies", model_id_field="company")],
